@@ -56,7 +56,7 @@ ShimScript.prototype.runInContext = async function (context, options = {}) {
             }catch(ex){
                 console.log('$ERR', ex);
             }`);
-    const newContext = await worker.terminate();
+    const newContext = await worker.gracefulShutdown();
     Object.keys(newContext).forEach(key => {
       context[key] = newContext[key];
     });
@@ -96,7 +96,7 @@ const ᱛ = async source => {
             worker.postMessage(message);
           });
         },
-        terminate: async () => {
+        gracefulShutdown: async () => {
           let resolve = null;
           let reject = null;
           try {
@@ -115,6 +115,9 @@ const ᱛ = async source => {
           } catch (ex) {
             if (reject) reject(ex);
           }
+        },
+        terminate: async () => {
+          worker.terminate();
         }
       };
       Object.defineProperty(self, 'onmessage', {
@@ -153,7 +156,7 @@ const ᱛ = async source => {
             worker.postMessage(event);
           });
         },
-        terminate: async () => {
+        gracefulShutdown: async () => {
           let resolve = null;
           let reject = null;
           try {
@@ -172,6 +175,9 @@ const ᱛ = async source => {
           } catch (ex) {
             if (reject) reject(ex);
           }
+        },
+        terminate: async () => {
+          worker.terminate();
         }
       };
       Object.defineProperty(self, 'onmessage', {

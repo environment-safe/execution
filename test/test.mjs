@@ -51,7 +51,7 @@ describe('@environment-safe/execution', ()=>{
                     worker.onmessage = function(e){
                         try{
                             testString.should.equal(e.data);
-                            worker.terminate();
+                            worker.gracefulShutdown();
                             resolve();
                         }catch(ex2){ reject(ex2); }
                     };
