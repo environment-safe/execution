@@ -1,6 +1,5 @@
 import { isBrowser, isJsDom } from 'browser-or-node';
 import * as mod from 'module';
-import * as path from 'path';
 let internalRequire = null;
 if(typeof require !== 'undefined') internalRequire = require;
 const ensureRequire = ()=> (!internalRequire) && (internalRequire = mod.createRequire(import.meta.url));
@@ -15,7 +14,7 @@ ShimScript.prototype.runInContext = async function(context, options={}){
     try{
         let source = '';
         Object.keys(context).forEach((key)=>{
-           source += `let ${key} = ${JSON.stringify( context[key] )}`;
+            source += `let ${key} = ${JSON.stringify( context[key] )}`;
         });
         source += 'const preRun = Object.keys(self);';
         source += this.text;
@@ -28,12 +27,12 @@ ShimScript.prototype.runInContext = async function(context, options={}){
                 }else{
                     if(handler) handler(e);
                 }
-                console.log('MESS', e.data, f);
+                //console.log('MESS', e.data, f);
             };
-            console.log(self.onmessage, handler);
+            //console.log(self.onmessage, handler);
         `;
         Object.keys(context).forEach((key)=>{
-           source += `results['${key}'] = ${key};`;
+            source += `results['${key}'] = ${key};`;
         });
         source += 'const postRun = Object.keys(self);';
         source += 'let difference = postRun.filter(x => !preRun.includes(x));';
@@ -42,7 +41,7 @@ ShimScript.prototype.runInContext = async function(context, options={}){
                 results[key] = self[key];
             });
         `;
-        source += 'console.log("RESULTS", results, difference)';
+        //source += 'console.log("RESULTS", results, difference)';
         const worker = await ᱛ(`
             try{
                 ${source}
@@ -51,9 +50,11 @@ ShimScript.prototype.runInContext = async function(context, options={}){
             }`);
         const newContext = await worker.terminate();
         Object.keys(newContext).forEach((key)=>{
-           context[key] = newContext[key];
+            context[key] = newContext[key];
         });
-    }catch(ex){ }
+    }catch(ex){
+        console.log(ex);
+    }
 };
 
 ShimScript.prototype.run = ShimScript.prototype.runInContext;
@@ -69,7 +70,7 @@ export const ଠ = function(scriptText){
         scpt.run = (context)=>{
             vm.createContext(context);
             return scpt.runInContext(context);
-        }
+        };
         return scpt;
     }
 };
@@ -78,7 +79,7 @@ export const ᱛ = async (source)=>{
     return await new Promise((resolve, reject)=>{
         if(isBrowser || isJsDom){
             var blob = new Blob([ source ], { 
-                type: "text/javascript" 
+                type: 'text/javascript' 
             });
             // Note: window.webkitURL.createObjectURL() in Chrome 10+.
             var worker = new Worker(window.URL.createObjectURL(blob));
@@ -89,29 +90,28 @@ export const ᱛ = async (source)=>{
                     });
                 },
                 terminate: async ()=>{
+                    let resolve = null;
+                    let reject = null;
                     try{
-                        let results = {};
-                        let resolve = null;
-                        let reject = null;
                         let promise = new Promise((rslv, rjct)=>{
                             resolve = rslv;
                             reject = rjct;
-                        }).catch((ex)=>{ });;
+                        }).catch((ex)=>{ });
                         worker.onmessage = (e)=>{
                             worker.terminate();
                             if(e.data.results) resolve(e.data.results);
                         };
                         worker.postMessage({ results: true });
                         return await promise;
-                    }catch(ex){ }
+                    }catch(ex){ if(reject) reject(ex); }
                 }
             };
-            Object.defineProperty(self, "onmessage", {
+            Object.defineProperty(self, 'onmessage', {
                 get(){
                     return worker.onmessage;
                 },
                 set(newValue){
-                    worker.onmessage = newValue
+                    worker.onmessage = newValue;
                 },
                 enumerable: true,
                 configurable: true,
@@ -119,13 +119,7 @@ export const ᱛ = async (source)=>{
             resolve(self);
         }else{
             ensureRequire();
-            const {
-                Worker, isMainThread, parentPort, workerData, MessageChannel
-            } = internalRequire('node:worker_threads');
-            const crypto = internalRequire('node:crypto');
-            const fs = internalRequire('node:fs'); 
-            const os = internalRequire('node:os'); 
-            const path = internalRequire('node:path');
+            const { Worker } = internalRequire('node:worker_threads');
             const url = new URL('../executor.mjs', import.meta.url);
             const worker = new Worker(url, {
                 workerData: source,
@@ -138,35 +132,46 @@ export const ᱛ = async (source)=>{
             let messageHandler = null;
             const self = {
                 postMessage: (message)=>{
+                    // it's tragic how node almost implements an interface, 
+                    // then whiffs it at the last second
+                    const event = new Event('MessageEvent');
+                    event.data = message;
+                    //console.log()
                     setTimeout(()=>{
-                        worker.postMessage(message);
+                        worker.postMessage(event);
                     });
                 },
                 terminate: async ()=>{
-                    let results = {};
                     let resolve = null;
                     let reject = null;
-                    let promise = new Promise((rslv, rjct)=>{
-                        resolve = rslv;
-                        reject = rjct;
-                    });
-                    worker.onmessage = (e)=>{
-                        worker.terminate();
-                        if(e.data.results) resolve(e.data.results);
-                    };
-                    worker.postMessage({ results: true });
-                    worker.terminate();
-                    return await promise;
+                    try{
+                        let promise = new Promise((rslv, rjct)=>{
+                            resolve = rslv;
+                            reject = rjct;
+                        });
+                        worker.onmessage = (e)=>{
+                            worker.terminate();
+                            if(e.data.results) resolve(e.data.results);
+                        };
+                        worker.postMessage({ results: true });
+                        return await promise;
+                    }catch(ex){
+                        if(reject) reject(ex);
+                    }
                 }
             };
-            Object.defineProperty(self, "onmessage", {
+            Object.defineProperty(self, 'onmessage', {
                 get() {
                     return messageHandler;
                 },
                 set(newValue){
                     if(messageHandler) worker.off('message', messageHandler);
                     messageHandler = newValue;
-                    worker.on('message', messageHandler);
+                    // it's tragic how node almost implements an interface, 
+                    // then whiffs it at the last second
+                    worker.on('message', (data)=>{
+                        messageHandler(data);
+                    });
                 },
                 enumerable: true,
                 configurable: true,
@@ -175,7 +180,7 @@ export const ᱛ = async (source)=>{
         }
     }).catch((ex)=>{
     });
-}
+};
 /**
  * A JSON object
  * @typedef { object } JSON

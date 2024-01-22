@@ -35,9 +35,9 @@ ShimScript.prototype.runInContext = async function (context, options = {}) {
                 }else{
                     if(handler) handler(e);
                 }
-                console.log('MESS', e.data, f);
+                //console.log('MESS', e.data, f);
             };
-            console.log(self.onmessage, handler);
+            //console.log(self.onmessage, handler);
         `;
     Object.keys(context).forEach(key => {
       source += `results['${key}'] = ${key};`;
@@ -49,7 +49,7 @@ ShimScript.prototype.runInContext = async function (context, options = {}) {
                 results[key] = self[key];
             });
         `;
-    source += 'console.log("RESULTS", results, difference)';
+    //source += 'console.log("RESULTS", results, difference)';
     const worker = await ᱛ(`
             try{
                 ${source}
@@ -144,8 +144,13 @@ const ᱛ = async source => {
       let messageHandler = null;
       const self = {
         postMessage: message => {
+          // it's tragic how node almost implements an interface, 
+          // then whiffs it at the last second
+          const event = new Event('MessageEvent');
+          event.data = message;
+          //console.log()
           setTimeout(() => {
-            worker.postMessage(message);
+            worker.postMessage(event);
           });
         },
         terminate: async () => {
@@ -176,7 +181,11 @@ const ᱛ = async source => {
         set(newValue) {
           if (messageHandler) worker.off('message', messageHandler);
           messageHandler = newValue;
-          worker.on('message', messageHandler);
+          // it's tragic how node almost implements an interface, 
+          // then whiffs it at the last second
+          worker.on('message', data => {
+            messageHandler(data);
+          });
         },
         enumerable: true,
         configurable: true

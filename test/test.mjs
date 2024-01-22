@@ -1,4 +1,4 @@
-/* global describe:false, it:false */
+/* global describe:false */
 import { chai } from '@environment-safe/chai';
 import { it } from '@open-automaton/moka';
 import { 
@@ -6,7 +6,7 @@ import {
     ↂ as globals,
     ᝪ as Function,
     ᱛ as createWorker
- } from '../src/index.mjs';
+} from '../src/index.mjs';
 const should = chai.should();
 
 describe('@environment-safe/execution', ()=>{
@@ -50,14 +50,14 @@ describe('@environment-safe/execution', ()=>{
                 try{
                     worker.onmessage = function(e){
                         try{
-                           testString.should.equal(e.data);
-                           const newContext = worker.terminate();
-                           resolve();
+                            testString.should.equal(e.data);
+                            worker.terminate();
+                            resolve();
                         }catch(ex2){ reject(ex2); }
-                    }
+                    };
                 }catch(ex){ reject(ex); }
-            })
-            worker.postMessage("start");
+            });
+            worker.postMessage('start');
             await promise;
         });
         

@@ -1,6 +1,6 @@
 {
     "name": "@environment-safe/execution",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "type": "module",
     "main": "dist/index.mjs",
     "module": "src/index.mjs",
@@ -80,7 +80,7 @@
     "scripts": {
         "lint": "./node_modules/.bin/eslint src/*.mjs test/*.mjs",
         "test": "npm run import-test; npm run browser-test; npm run require-test",
-        "import-test": "./node_modules/.bin/mocha test/test.mjs",
+        "import-test": "moka test/test.mjs",
         "require-test": "./node_modules/.bin/mocha test/test.cjs",
         "build-commonjs": "./node_modules/@environment-safe/commonjs-builder/bin/build.mjs",
         "local-server": "open 'http://localhost:8085/' ; npx http-server -p 8085",
